@@ -15,7 +15,7 @@ exports.createLetter = async (req, res) => {
             : null;
 
         const audioUrl = req.files?.audio?.[0]
-            ? await uploadToCloudinary(req.files.audio[0], 'letters/audio', 'audio')
+            ? await uploadToCloudinary(req.files.audio[0], 'letters/audio', 'video')
             : null;
 
         const openedAt = new Date();
