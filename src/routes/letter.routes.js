@@ -26,4 +26,6 @@ router.get('/history', auth, authorize('user'), controller.getHistory);
 
 router.put('/seen/:id', auth, authorize('user'), controller.markAsSeen);
 
+router.get('/status', auth, authorize('user'), controller.getCountdownAndProgress);
+
 module.exports = router;

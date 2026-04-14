@@ -30,7 +30,12 @@ const LetterSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
-
+    viewedBy: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        }
+    ],
     openedAt: {
         type: Date // cuando se desbloquea
     },
