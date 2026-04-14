@@ -16,6 +16,22 @@ exports.createLetter = async (req, res) => {
         //     return res.status(400).json({ msg: 'Ya existe una carta para este mes' });
         // }
 
+        const now = new Date();
+
+        // 🔥 Calcular mes actual basado en startDate
+        const diffMonths =
+            (now.getFullYear() - startDate.getFullYear()) * 12 +
+            (now.getMonth() - startDate.getMonth()) + 1;
+
+        const currentMonth = Math.max(1, diffMonths);
+
+        if (month < currentMonth) {
+            return res.status(400).json({
+                msg: `No puedes crear cartas en meses pasados. Mes actual: ${currentMonth}`
+            });
+        }
+
+        // 📸 Subidas
         const imageUrl = req.files?.image?.[0]
             ? await uploadToCloudinary(req.files.image[0], 'letters/images', 'image')
             : null;
