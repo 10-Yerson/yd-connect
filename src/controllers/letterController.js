@@ -117,7 +117,9 @@ exports.getLettersForUser = async (req, res) => {
             (now.getFullYear() - startDate.getFullYear()) * 12 +
             (now.getMonth() - startDate.getMonth()) + 1;
 
-        const currentMonth = Math.min(12, Math.max(1, diffMonths));
+        // 🔥 CORREGIDO
+        let currentMonth =
+            diffMonths < 1 ? 0 : Math.min(12, diffMonths);
 
         const letters = await Letter.find().sort({ month: 1 });
 
@@ -167,6 +169,7 @@ exports.markAsSeen = async (req, res) => {
 
 exports.getHistory = async (req, res) => {
     try {
+        // const now = new Date('2026-12-01');
         const now = new Date();
 
         const letters = await Letter.find({
