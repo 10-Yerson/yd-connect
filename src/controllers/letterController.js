@@ -184,20 +184,24 @@ exports.getCountdownAndProgress = async (req, res) => {
         const now = new Date();
         const totalMonths = 12;
 
-        // 🧠 calcular diferencia de meses
+        // 📅 fecha final (1 año)
+        const endDate = new Date(
+            startDate.getFullYear() + 1,
+            startDate.getMonth(),
+            startDate.getDate()
+        );
+
+        // 🧠 calcular meses desde inicio
         let diffMonths =
             (now.getFullYear() - startDate.getFullYear()) * 12 +
             (now.getMonth() - startDate.getMonth());
 
-        // 🛑 si aún no empieza
         if (now < startDate) diffMonths = -1;
 
-        // 📊 mes actual real
         const currentMonth =
             diffMonths < 0 ? 0 : Math.min(totalMonths, diffMonths + 1);
 
-        // 🏁 si ya terminó
-        const finished = currentMonth >= totalMonths;
+        const finished = now >= endDate;
 
         // 📅 siguiente mes
         const nextMonth =
@@ -205,7 +209,7 @@ exports.getCountdownAndProgress = async (req, res) => {
                 currentMonth < totalMonths ? currentMonth + 1 :
                     null;
 
-        // 📅 próxima fecha real
+        // 📅 próxima carta
         let nextUnlockDate = null;
 
         if (!finished) {
@@ -216,7 +220,7 @@ exports.getCountdownAndProgress = async (req, res) => {
             );
         }
 
-        // ⏳ tiempo restante
+        // ⏳ tiempo hasta próxima carta
         let days = 0, hours = 0, minutes = 0;
 
         if (nextUnlockDate) {
@@ -227,20 +231,50 @@ exports.getCountdownAndProgress = async (req, res) => {
             minutes = Math.floor((diff / (1000 * 60)) % 60);
         }
 
-        // 📊 progreso real
-        const unlocked = await Letter.countDocuments({
-            openedAt: { $lte: now }
-        });
+        // 🔥 tiempo REAL hasta el final (meses + días)
+        const calculateRealMonthsAndDays = (from, to) => {
+            let tempDate = new Date(from);
+            let months = 0;
+
+            while (true) {
+                let nextMonth = new Date(tempDate);
+                nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+                if (nextMonth <= to) {
+                    months++;
+                    tempDate = nextMonth;
+                } else break;
+            }
+
+            const days = Math.floor(
+                (to - tempDate) / (1000 * 60 * 60 * 24)
+            );
+
+            return { months, days };
+        };
+
+        const remainingTime = calculateRealMonthsAndDays(now, endDate);
+
+        // 📊 progreso (solo si inició)
+        const unlocked =
+            now < startDate
+                ? 0
+                : await Letter.countDocuments({
+                    openedAt: { $lte: now }
+                });
 
         const percentage = Math.round((unlocked / totalMonths) * 100);
 
         // 👁️ no vistas
-        const unseen = await Letter.countDocuments({
-            openedAt: { $lte: now },
-            viewedBy: { $ne: req.user.id }
-        });
+        const unseen =
+            now < startDate
+                ? 0
+                : await Letter.countDocuments({
+                    openedAt: { $lte: now },
+                    viewedBy: { $ne: req.user.id }
+                });
 
-        // 💌 mensaje emocional dinámico
+        // 💌 mensaje emocional
         let message = "";
         if (currentMonth === 0) {
             message = "Aún no comienza nuestra historia 💖";
@@ -272,6 +306,12 @@ exports.getCountdownAndProgress = async (req, res) => {
                 timeLeft: { days, hours, minutes }
             },
 
+            // 🔥 NUEVO (TIEMPO REAL RESTANTE)
+            remainingTime: {
+                months: remainingTime.months,
+                days: remainingTime.days
+            },
+
             notifications: {
                 unseenLetters: unseen
             }
@@ -289,14 +329,22 @@ exports.getPublicCountdown = (req, res) => {
         const now = new Date();
         const totalMonths = 12;
 
+        // 📅 Fecha final (1 año después)
+        const endDate = new Date(
+            startDate.getFullYear() + 1,
+            startDate.getMonth(),
+            startDate.getDate()
+        );
+
+        // 🧠 diferencia de meses desde inicio
         let diffMonths =
             (now.getFullYear() - startDate.getFullYear()) * 12 +
             (now.getMonth() - startDate.getMonth());
 
         const notStarted = now < startDate;
-        const finished = diffMonths >= totalMonths;
+        const finished = now >= endDate;
 
-        let months = totalMonths;
+        let months = 0;
         let days = 0;
         let hours = 0;
         let minutes = 0;
@@ -305,19 +353,44 @@ exports.getPublicCountdown = (req, res) => {
         let message = "";
         let nextUnlockDate = null;
 
+        // 🔥 FUNCIÓN PARA CALCULAR MESES REALES
+        const calculateRealMonthsAndDays = (from, to) => {
+            let tempDate = new Date(from);
+            let months = 0;
+
+            while (true) {
+                let nextMonth = new Date(tempDate);
+                nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+                if (nextMonth <= to) {
+                    months++;
+                    tempDate = nextMonth;
+                } else break;
+            }
+
+            const days = Math.floor(
+                (to - tempDate) / (1000 * 60 * 60 * 24)
+            );
+
+            return { months, days };
+        };
+
         // ⏳ NO INICIADO
         if (notStarted) {
-            months = totalMonths;
             currentMonth = 0;
             progress = 0;
 
-            nextUnlockDate = new Date(startDate);
+            const diff = startDate - now;
 
-            const diff = nextUnlockDate - now;
+            const time = calculateRealMonthsAndDays(now, startDate);
 
-            days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            months = time.months;
+            days = time.days;
+
             hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
             minutes = Math.floor((diff / (1000 * 60)) % 60);
+
+            nextUnlockDate = new Date(startDate);
 
             message = "Aún no empieza… pero ya estoy preparando algo solo para ti 💖";
         }
@@ -326,10 +399,18 @@ exports.getPublicCountdown = (req, res) => {
         else if (!finished) {
             const safeMonths = Math.max(0, diffMonths);
 
-            currentMonth = safeMonths;
-            months = Math.max(0, totalMonths - safeMonths);
+            currentMonth = safeMonths + 1;
+            progress = Math.floor((currentMonth / totalMonths) * 100);
 
-            progress = Math.floor((safeMonths / totalMonths) * 100);
+            const time = calculateRealMonthsAndDays(now, endDate);
+
+            months = time.months;
+            days = time.days;
+
+            const diff = endDate - now;
+
+            hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            minutes = Math.floor((diff / (1000 * 60)) % 60);
 
             nextUnlockDate = new Date(
                 startDate.getFullYear(),
@@ -337,20 +418,18 @@ exports.getPublicCountdown = (req, res) => {
                 startDate.getDate()
             );
 
-            const diff = nextUnlockDate - now;
-
-            days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-            minutes = Math.floor((diff / (1000 * 60)) % 60);
-
             message = "Cada mes es una parte de mí llegando a ti 💌";
         }
 
         // 🕊️ TERMINADO
         else {
-            months = 0;
             currentMonth = totalMonths;
             progress = 100;
+
+            months = 0;
+            days = 0;
+            hours = 0;
+            minutes = 0;
 
             message = "Ya viviste toda la historia… pero nunca termina lo que sentimos 💖";
         }
@@ -371,8 +450,9 @@ exports.getPublicCountdown = (req, res) => {
                         : "Historia en curso 💖"
             },
 
-            progress,        // 🔥 %
-            currentMonth,    // 📍 mes actual
+            progress,
+            currentMonth,
+
             timeLeft: {
                 months,
                 days,
@@ -381,6 +461,7 @@ exports.getPublicCountdown = (req, res) => {
             },
 
             nextUnlockDate,
+            endDate, // 🔥 importante para frontend también
 
             message
         });
