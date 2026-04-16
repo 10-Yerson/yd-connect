@@ -1,3 +1,3 @@
 module.exports = {
-    startDate: new Date('2026-04-14') // 💖 inicio de nuestra historia
+    startDate: new Date(2026, 4, 1) // 💖 1 de mayo 2026
 };

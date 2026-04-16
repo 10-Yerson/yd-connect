@@ -31,7 +31,7 @@ exports.createLetter = async (req, res) => {
             });
         }
 
-        // 📸 Subidas
+        // 📸 uploads
         const imageUrl = req.files?.image?.[0]
             ? await uploadToCloudinary(req.files.image[0], 'letters/images', 'image')
             : null;
@@ -44,8 +44,12 @@ exports.createLetter = async (req, res) => {
             ? await uploadToCloudinary(req.files.audio[0], 'letters/audio', 'video')
             : null;
 
-        const openedAt = new Date(startDate);
-        openedAt.setMonth(startDate.getMonth() + (month - 1));
+        // 🔥 CORREGIDO → SIEMPRE día 1
+        const openedAt = new Date(
+            startDate.getFullYear(),
+            startDate.getMonth() + (month - 1),
+            1
+        );
 
         const letter = await Letter.create({
             title,
@@ -81,16 +85,13 @@ exports.updateLetter = async (req, res) => {
             return res.status(400).json({ msg: 'Mes inválido' });
         }
 
-        // Evitar duplicados
         if (month && month !== letter.month) {
-            const existing = await Letter.findOne({ month });
-            if (existing) {
-                return res.status(400).json({ msg: 'Ya existe una carta en ese mes' });
-            }
 
-            // 🔥 recalcular fecha
-            const openedAt = new Date(startDate);
-            openedAt.setMonth(startDate.getMonth() + (month - 1));
+            const openedAt = new Date(
+                startDate.getFullYear(),
+                startDate.getMonth() + (month - 1),
+                1 // 🔥 día 1 siempre
+            );
 
             letter.month = month;
             letter.openedAt = openedAt;
@@ -188,7 +189,7 @@ exports.getCountdownAndProgress = async (req, res) => {
         const endDate = new Date(
             startDate.getFullYear() + 1,
             startDate.getMonth(),
-            startDate.getDate()
+            1 // 🔥 SIEMPRE día 1
         );
 
         // 🧠 calcular meses desde inicio
@@ -216,7 +217,7 @@ exports.getCountdownAndProgress = async (req, res) => {
             nextUnlockDate = new Date(
                 startDate.getFullYear(),
                 startDate.getMonth() + (currentMonth === 0 ? 0 : currentMonth),
-                startDate.getDate()
+                1 // 🔥 día 1
             );
         }
 
@@ -333,7 +334,7 @@ exports.getPublicCountdown = (req, res) => {
         const endDate = new Date(
             startDate.getFullYear() + 1,
             startDate.getMonth(),
-            startDate.getDate()
+            1
         );
 
         // 🧠 diferencia de meses desde inicio
@@ -415,7 +416,7 @@ exports.getPublicCountdown = (req, res) => {
             nextUnlockDate = new Date(
                 startDate.getFullYear(),
                 startDate.getMonth() + safeMonths + 1,
-                startDate.getDate()
+                1
             );
 
             message = "Cada mes es una parte de mí llegando a ti 💌";
