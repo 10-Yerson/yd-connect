@@ -28,4 +28,6 @@ router.put('/seen/:id', auth, authorize('user'), controller.markAsSeen);
 
 router.get('/status', auth, authorize('user'), controller.getCountdownAndProgress);
 
+router.get('/public-status', controller.getPublicCountdown);
+
 module.exports = router;

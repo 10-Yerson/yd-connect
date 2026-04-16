@@ -66,6 +66,7 @@ exports.createLetter = async (req, res) => {
     }
 };
 
+
 exports.updateLetter = async (req, res) => {
     try {
         const letter = await Letter.findById(req.params.id);
@@ -181,54 +182,96 @@ exports.getHistory = async (req, res) => {
 exports.getCountdownAndProgress = async (req, res) => {
     try {
         const now = new Date();
-
-        const diffMonths =
-            (now.getFullYear() - startDate.getFullYear()) * 12 +
-            (now.getMonth() - startDate.getMonth()) + 1;
-
-        const currentMonth = Math.min(12, Math.max(1, diffMonths));
-
         const totalMonths = 12;
 
+        // 🧠 calcular diferencia de meses
+        let diffMonths =
+            (now.getFullYear() - startDate.getFullYear()) * 12 +
+            (now.getMonth() - startDate.getMonth());
+
+        // 🛑 si aún no empieza
+        if (now < startDate) diffMonths = -1;
+
+        // 📊 mes actual real
+        const currentMonth =
+            diffMonths < 0 ? 0 : Math.min(totalMonths, diffMonths + 1);
+
+        // 🏁 si ya terminó
+        const finished = currentMonth >= totalMonths;
+
+        // 📅 siguiente mes
+        const nextMonth =
+            currentMonth === 0 ? 1 :
+                currentMonth < totalMonths ? currentMonth + 1 :
+                    null;
+
+        // 📅 próxima fecha real
+        let nextUnlockDate = null;
+
+        if (!finished) {
+            nextUnlockDate = new Date(
+                startDate.getFullYear(),
+                startDate.getMonth() + (currentMonth === 0 ? 0 : currentMonth),
+                startDate.getDate()
+            );
+        }
+
+        // ⏳ tiempo restante
+        let days = 0, hours = 0, minutes = 0;
+
+        if (nextUnlockDate) {
+            const diff = Math.max(0, nextUnlockDate - now);
+
+            days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            minutes = Math.floor((diff / (1000 * 60)) % 60);
+        }
+
+        // 📊 progreso real
         const unlocked = await Letter.countDocuments({
             openedAt: { $lte: now }
         });
 
         const percentage = Math.round((unlocked / totalMonths) * 100);
 
-        const nextMonth = currentMonth < 12 ? currentMonth + 1 : null;
-
-        const nextUnlockDate = new Date(startDate);
-        nextUnlockDate.setMonth(startDate.getMonth() + currentMonth);
-
-        const diff = Math.max(0, nextUnlockDate - now);
-
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-        const minutes = Math.floor((diff / (1000 * 60)) % 60);
-
+        // 👁️ no vistas
         const unseen = await Letter.countDocuments({
             openedAt: { $lte: now },
             viewedBy: { $ne: req.user.id }
         });
 
+        // 💌 mensaje emocional dinámico
+        let message = "";
+        if (currentMonth === 0) {
+            message = "Aún no comienza nuestra historia 💖";
+        } else if (percentage < 25) {
+            message = "Esto apenas comienza 💖";
+        } else if (percentage < 50) {
+            message = "Nuestro tiempo sigue creciendo...";
+        } else if (percentage < 75) {
+            message = "Ya hemos vivido mucho juntos 🥺";
+        } else {
+            message = "Casi llegamos al final… pero siempre serás tú 💖";
+        }
+
         res.json({
+            finished,
             monthsTogether: currentMonth,
+            message,
+
             progress: {
                 total: totalMonths,
                 unlocked,
-                remaining: totalMonths - unlocked,
+                remaining: Math.max(0, totalMonths - unlocked),
                 percentage
             },
+
             countdown: {
                 nextMonth,
                 nextUnlockDate,
-                timeLeft: {
-                    days,
-                    hours,
-                    minutes
-                }
+                timeLeft: { days, hours, minutes }
             },
+
             notifications: {
                 unseenLetters: unseen
             }
@@ -239,3 +282,112 @@ exports.getCountdownAndProgress = async (req, res) => {
         res.status(500).json({ msg: 'Error obteniendo datos' });
     }
 };
+
+
+exports.getPublicCountdown = (req, res) => {
+    try {
+        const now = new Date();
+        const totalMonths = 12;
+
+        let diffMonths =
+            (now.getFullYear() - startDate.getFullYear()) * 12 +
+            (now.getMonth() - startDate.getMonth());
+
+        const notStarted = now < startDate;
+        const finished = diffMonths >= totalMonths;
+
+        let months = totalMonths;
+        let days = 0;
+        let hours = 0;
+        let minutes = 0;
+        let currentMonth = 0;
+        let progress = 0;
+        let message = "";
+        let nextUnlockDate = null;
+
+        // ⏳ NO INICIADO
+        if (notStarted) {
+            months = totalMonths;
+            currentMonth = 0;
+            progress = 0;
+
+            nextUnlockDate = new Date(startDate);
+
+            const diff = nextUnlockDate - now;
+
+            days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            minutes = Math.floor((diff / (1000 * 60)) % 60);
+
+            message = "Aún no empieza… pero ya estoy preparando algo solo para ti 💖";
+        }
+
+        // 💖 EN PROGRESO
+        else if (!finished) {
+            const safeMonths = Math.max(0, diffMonths);
+
+            currentMonth = safeMonths;
+            months = Math.max(0, totalMonths - safeMonths);
+
+            progress = Math.floor((safeMonths / totalMonths) * 100);
+
+            nextUnlockDate = new Date(
+                startDate.getFullYear(),
+                startDate.getMonth() + safeMonths + 1,
+                startDate.getDate()
+            );
+
+            const diff = nextUnlockDate - now;
+
+            days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            minutes = Math.floor((diff / (1000 * 60)) % 60);
+
+            message = "Cada mes es una parte de mí llegando a ti 💌";
+        }
+
+        // 🕊️ TERMINADO
+        else {
+            months = 0;
+            currentMonth = totalMonths;
+            progress = 100;
+
+            message = "Ya viviste toda la historia… pero nunca termina lo que sentimos 💖";
+        }
+
+        return res.json({
+            status: notStarted
+                ? "not_started"
+                : finished
+                    ? "finished"
+                    : "in_progress",
+
+            phase: {
+                code: notStarted ? "waiting" : finished ? "completed" : "living",
+                label: notStarted
+                    ? "Esperando el inicio 💫"
+                    : finished
+                        ? "Historia completa 🕊️"
+                        : "Historia en curso 💖"
+            },
+
+            progress,        // 🔥 %
+            currentMonth,    // 📍 mes actual
+            timeLeft: {
+                months,
+                days,
+                hours,
+                minutes
+            },
+
+            nextUnlockDate,
+
+            message
+        });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ msg: "Error público" });
+    }
+};
+
