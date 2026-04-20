@@ -68,11 +68,14 @@ exports.registerAdmin = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-    const { email, password } = req.body;
+
+    let { email, password } = req.body;
 
     if (!email || !password) {
         return res.status(400).json({ msg: "Todos los campos son obligatorios" });
     }
+
+    email = email.toLowerCase().trim();
 
     try {
         const [admin, user] = await Promise.all([
@@ -134,8 +137,14 @@ exports.logout = (req, res) => {
 
 
 exports.checkAuth = (req, res) => {
+    // req.user ya viene del middleware auth
+    if (!req.user) {
+        return res.status(401).json({ msg: 'No autenticado' });
+    }
+
     res.json({
-        role: req.user.role
+        role: req.user.role,
+        userId: req.user.id
     });
 };
 
