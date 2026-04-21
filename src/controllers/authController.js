@@ -109,7 +109,7 @@ exports.login = async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
-            maxAge: 7 * 24 * 60 * 60 * 1000
+            maxAge: 90 * 24 * 60 * 60 * 1000  // 90 días
         });
 
         res.json({
@@ -153,4 +153,50 @@ exports.getUserInfo = (req, res) => {
         userId: req.user.id,
         role: req.user.role
     });
+};
+
+// Agregar esta función al final del archivo
+exports.refreshToken = async (req, res) => {
+    try {
+        const token = req.cookies.auth_token;
+
+        if (!token) {
+            return res.status(401).json({ msg: 'No token provided' });
+        }
+
+        // Verificar el token actual
+        const decoded = jwt.verify(token, jwtSecret);
+
+        // Verificar si el usuario aún existe
+        let account = await User.findById(decoded.user.id);
+        if (!account) {
+            account = await Admin.findById(decoded.user.id);
+        }
+
+        if (!account) {
+            return res.status(401).json({ msg: 'User not found' });
+        }
+
+        // Crear nuevo token
+        const payload = {
+            user: {
+                id: account._id,
+                role: decoded.user.role
+            }
+        };
+
+        const newToken = jwt.sign(payload, jwtSecret, { expiresIn: jwtExpire });
+
+        res.cookie('auth_token', newToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+            maxAge: 90 * 24 * 60 * 60 * 1000  // 90 días
+        });
+
+        res.json({ msg: 'Token refreshed', role: decoded.user.role });
+    } catch (error) {
+        console.error('Refresh token error:', error);
+        res.status(401).json({ msg: 'Invalid token' });
+    }
 };
