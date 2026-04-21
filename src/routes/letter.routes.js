@@ -22,12 +22,18 @@ router.put('/:id', auth, authorize('admin'), controller.updateLetter);
 // USER
 router.get('/user', auth, authorize('user'), controller.getLettersForUser);
 
+router.get('/admin', auth, authorize('admin'), controller.getAllLetters);
+
 router.get('/history', auth, authorize('user'), controller.getHistory);
 
 router.put('/seen/:id', auth, authorize('user'), controller.markAsSeen);
 
+router.put('/:id', auth, authorize('admin'), controller.updateLetter);
+
 router.get('/status', auth, authorize('user'), controller.getCountdownAndProgress);
 
 router.get('/public-status', controller.getPublicCountdown);
+
+router.delete('/:id', auth, authorize('admin'), controller.deleteLetter);
 
 module.exports = router;

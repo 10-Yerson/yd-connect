@@ -117,3 +117,16 @@ exports.deleteMemory = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+// ADMIN - Obtener todos los recuerdos (para administrar)
+exports.getAllMemories = async (req, res) => {
+    try {
+        const memories = await Memory.find()
+            .populate('user', 'name')
+            .sort({ createdAt: -1 });
+        res.json(memories);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: error.message });
+    }
+};

@@ -41,6 +41,16 @@ exports.getGoals = async (req, res) => {
     }
 };
 
+// 📋 ADMIN - OBTENER TODAS LAS METAS
+exports.getAllGoals = async (req, res) => {
+    try {
+        const goals = await Goal.find().sort({ createdAt: -1 });
+        res.json(goals);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: error.message });
+    }
+};
 
 // 👀 VER UNA
 exports.getGoalById = async (req, res) => {
@@ -107,7 +117,6 @@ exports.updateGoalStatus = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
-
 
 // 🗑️ ELIMINAR META
 exports.deleteGoal = async (req, res) => {

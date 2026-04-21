@@ -19,6 +19,13 @@ router.post(
     memoryController.createMemory
 );
 
+// 📋 OBTENER TODOS LOS RECUERDOS PARA ADMIN
+router.get(
+    '/admin',
+    auth,
+    authorize('admin'),
+    memoryController.getAllMemories
+);
 
 // 👀 VER TODAS (USER Y ADMIN PUEDEN VER)
 router.get(

@@ -476,3 +476,30 @@ exports.getPublicCountdown = (req, res) => {
     }
 };
 
+// ADMIN - Obtener todas las cartas (para administrar)
+exports.getAllLetters = async (req, res) => {
+    try {
+        const letters = await Letter.find().sort({ month: 1 });
+        res.json(letters);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ msg: 'Error al obtener las cartas' });
+    }
+};
+
+// ADMIN - Eliminar carta
+exports.deleteLetter = async (req, res) => {
+    try {
+        const letter = await Letter.findById(req.params.id);
+        
+        if (!letter) {
+            return res.status(404).json({ msg: 'Carta no encontrada' });
+        }
+        
+        await letter.deleteOne();
+        res.json({ msg: 'Carta eliminada exitosamente' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ msg: 'Error al eliminar la carta' });
+    }
+};

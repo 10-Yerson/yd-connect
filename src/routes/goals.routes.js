@@ -18,6 +18,14 @@ router.post(
     goalController.createGoal
 );
 
+// 📋 ADMIN - OBTENER TODAS LAS METAS
+router.get(
+    '/admin',
+    auth,
+    authorize('admin'),
+    goalController.getAllGoals
+);
+
 
 // 👀 VER TODAS
 router.get(
