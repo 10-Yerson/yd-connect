@@ -45,11 +45,15 @@ router.get(
 );
 
 
-// ✏️ ACTUALIZAR (SOLO ADMIN)
 router.put(
     '/:id',
     auth,
     authorize('admin'),
+    upload.fields([
+        { name: 'image', maxCount: 1 },
+        { name: 'video', maxCount: 1 },
+        { name: 'music', maxCount: 1 }
+    ]),
     memoryController.updateMemory
 );
 

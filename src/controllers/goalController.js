@@ -10,7 +10,7 @@ exports.createGoal = async (req, res) => {
         const media = {};
 
         if (req.files?.image) {
-            media.image = await uploadToCloudinary(req.files.image[0], 'goals');
+            media.image = await uploadToCloudinary(req.files.image[0], 'goals', 'image');
         }
 
         if (req.files?.video) {
@@ -68,7 +68,7 @@ exports.getGoalById = async (req, res) => {
 };
 
 
-// ✏️ ACTUALIZAR META (texto)
+// ✏️ ACTUALIZAR META (texto y multimedia)
 exports.updateGoal = async (req, res) => {
     try {
         const goal = await Goal.findById(req.params.id);
@@ -81,18 +81,49 @@ exports.updateGoal = async (req, res) => {
             return res.status(403).json({ message: "No autorizado" });
         }
 
-        goal.title = req.body.title || goal.title;
-        goal.description = req.body.description || goal.description;
+        // Actualizar texto
+        if (req.body.title !== undefined) goal.title = req.body.title;
+        if (req.body.description !== undefined) goal.description = req.body.description;
+
+        // Obtener flags de eliminación
+        const removeImage = req.body.removeImage === 'true';
+        const removeVideo = req.body.removeVideo === 'true';
+
+        // Inicializar media si no existe
+        if (!goal.media) goal.media = {};
+
+        // ========== MANEJAR IMAGEN ==========
+        if (req.files?.image) {
+            // Subir nueva imagen
+            const imageUrl = await uploadToCloudinary(req.files.image[0], 'goals', 'image');
+            goal.media.image = imageUrl;
+        } else if (removeImage) {
+            // Eliminar imagen existente
+            goal.media.image = null;
+        }
+
+        // ========== MANEJAR VIDEO ==========
+        if (req.files?.video) {
+            // Subir nuevo video
+            const videoUrl = await uploadToCloudinary(req.files.video[0], 'goals', 'video');
+            goal.media.video = videoUrl;
+        } else if (removeVideo) {
+            // Eliminar video existente
+            goal.media.video = null;
+        }
 
         await goal.save();
 
-        res.json(goal);
+        res.json({
+            message: "Meta actualizada exitosamente",
+            goal
+        });
 
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: error.message });
     }
 };
-
 
 // 🔄 CAMBIAR ESTADO
 exports.updateGoalStatus = async (req, res) => {

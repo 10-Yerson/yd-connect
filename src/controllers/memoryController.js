@@ -10,7 +10,7 @@ exports.createMemory = async (req, res) => {
         let image, video, music;
 
         if (req.files?.image) {
-            image = await uploadToCloudinary(req.files.image[0], 'memories');
+            image = await uploadToCloudinary(req.files.image[0], 'memories', 'image');
         }
 
         if (req.files?.video) {
@@ -83,14 +83,52 @@ exports.updateMemory = async (req, res) => {
             return res.status(403).json({ message: "Solo tú puedes editar recuerdos 💌" });
         }
 
-        memory.text = req.body.text || memory.text;
-        memory.date = req.body.date || memory.date;
+        // Actualizar texto y fecha
+        if (req.body.text !== undefined) memory.text = req.body.text;
+        if (req.body.date !== undefined) memory.date = req.body.date;
+
+        // Obtener flags de eliminación
+        const { removeImage, removeVideo, removeAudio } = req.body;
+
+        // ========== MANEJAR IMAGEN ==========
+        if (req.files?.image) {
+            // Subir nueva imagen
+            const imageUrl = await uploadToCloudinary(req.files.image[0], 'memories', 'image');
+            memory.image = imageUrl;
+        } else if (removeImage === 'true') {
+            // Eliminar imagen existente
+            memory.image = null;
+        }
+
+        // ========== MANEJAR VIDEO ==========
+        if (req.files?.video) {
+            // Subir nuevo video
+            const videoUrl = await uploadToCloudinary(req.files.video[0], 'memories', 'video');
+            memory.video = videoUrl;
+        } else if (removeVideo === 'true') {
+            // Eliminar video existente
+            memory.video = null;
+        }
+
+        // ========== MANEJAR AUDIO ==========
+        if (req.files?.music) {
+            // Subir nuevo audio
+            const audioUrl = await uploadToCloudinary(req.files.music[0], 'memories', 'auto');
+            memory.music = audioUrl;
+        } else if (removeAudio === 'true') {
+            // Eliminar audio existente
+            memory.music = null;
+        }
 
         await memory.save();
 
-        res.json(memory);
+        res.json({
+            message: "Recuerdo actualizado exitosamente",
+            memory
+        });
 
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: error.message });
     }
 };

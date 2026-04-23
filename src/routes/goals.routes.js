@@ -45,11 +45,15 @@ router.get(
 );
 
 
-// ✏️ EDITAR META
+// ✏️ EDITAR META (con soporte para archivos)
 router.put(
     '/:id',
     auth,
     authorize('admin'),
+    upload.fields([
+        { name: 'image', maxCount: 1 },
+        { name: 'video', maxCount: 1 }
+    ]),
     goalController.updateGoal
 );
 
