@@ -79,32 +79,58 @@ exports.updateLetter = async (req, res) => {
             return res.status(404).json({ msg: 'Carta no encontrada' });
         }
 
-        const { title, message, month } = req.body;
+        const { title, message, month, removeImage, removeVideo, removeAudio } = req.body;
 
+        // Validar mes
         if (month && (month < 1 || month > 12)) {
             return res.status(400).json({ msg: 'Mes inválido' });
         }
 
+        // Actualizar mes si cambió
         if (month && month !== letter.month) {
-
             const openedAt = new Date(
                 startDate.getFullYear(),
                 startDate.getMonth() + (month - 1),
-                1 // 🔥 día 1 siempre
+                1
             );
-
             letter.month = month;
             letter.openedAt = openedAt;
         }
 
-        letter.title = title || letter.title;
-        letter.message = message || letter.message;
+        // Actualizar texto
+        if (title !== undefined) letter.title = title;
+        if (message !== undefined) letter.message = message;
+
+        // Manejar imagen
+        if (req.files?.image) {
+            const imageUrl = await uploadToCloudinary(req.files.image[0], 'letters/images', 'image');
+            letter.imageUrl = imageUrl;
+        } else if (removeImage === 'true') {
+            letter.imageUrl = null;
+        }
+
+        // Manejar video
+        if (req.files?.video) {
+            const videoUrl = await uploadToCloudinary(req.files.video[0], 'letters/videos', 'video');
+            letter.videoUrl = videoUrl;
+        } else if (removeVideo === 'true') {
+            letter.videoUrl = null;
+        }
+
+        // Manejar audio
+        if (req.files?.audio) {
+            const audioUrl = await uploadToCloudinary(req.files.audio[0], 'letters/audio', 'auto');
+            letter.audioUrl = audioUrl;
+        } else if (removeAudio === 'true') {
+            letter.audioUrl = null;
+        }
 
         await letter.save();
 
-        res.json({ msg: 'Carta actualizada', letter });
+        res.json({ msg: 'Carta actualizada exitosamente', letter });
 
     } catch (error) {
+        console.error(error);
         res.status(500).json({ msg: 'Error actualizando carta' });
     }
 };
@@ -491,11 +517,11 @@ exports.getAllLetters = async (req, res) => {
 exports.deleteLetter = async (req, res) => {
     try {
         const letter = await Letter.findById(req.params.id);
-        
+
         if (!letter) {
             return res.status(404).json({ msg: 'Carta no encontrada' });
         }
-        
+
         await letter.deleteOne();
         res.json({ msg: 'Carta eliminada exitosamente' });
     } catch (error) {

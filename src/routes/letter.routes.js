@@ -17,7 +17,17 @@ router.post(
     controller.createLetter
 );
 
-router.put('/:id', auth, authorize('admin'), controller.updateLetter);
+router.put(
+    '/:id',
+    auth,
+    authorize('admin'),
+    upload.fields([
+        { name: 'image', maxCount: 1 },
+        { name: 'video', maxCount: 1 },
+        { name: 'audio', maxCount: 1 }
+    ]),
+    controller.updateLetter
+);
 
 // USER
 router.get('/user', auth, authorize('user'), controller.getLettersForUser);
