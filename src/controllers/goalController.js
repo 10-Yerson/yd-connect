@@ -1,5 +1,6 @@
 const Goal = require('../models/goal');
 const uploadToCloudinary = require('../utils/uploadToCloudinary');
+const { deleteFromCloudinary } = require('../utils/cloudinaryHelper');
 
 
 // 👑 CREAR META
@@ -94,21 +95,35 @@ exports.updateGoal = async (req, res) => {
 
         // ========== MANEJAR IMAGEN ==========
         if (req.files?.image) {
+            // Eliminar imagen anterior si existe
+            if (goal.media.image) {
+                await deleteFromCloudinary(goal.media.image);
+            }
             // Subir nueva imagen
             const imageUrl = await uploadToCloudinary(req.files.image[0], 'goals', 'image');
             goal.media.image = imageUrl;
         } else if (removeImage) {
-            // Eliminar imagen existente
+            // Eliminar imagen existente de Cloudinary
+            if (goal.media.image) {
+                await deleteFromCloudinary(goal.media.image);
+            }
             goal.media.image = null;
         }
 
         // ========== MANEJAR VIDEO ==========
         if (req.files?.video) {
+            // Eliminar video anterior si existe
+            if (goal.media.video) {
+                await deleteFromCloudinary(goal.media.video);
+            }
             // Subir nuevo video
             const videoUrl = await uploadToCloudinary(req.files.video[0], 'goals', 'video');
             goal.media.video = videoUrl;
         } else if (removeVideo) {
-            // Eliminar video existente
+            // Eliminar video existente de Cloudinary
+            if (goal.media.video) {
+                await deleteFromCloudinary(goal.media.video);
+            }
             goal.media.video = null;
         }
 
@@ -162,11 +177,22 @@ exports.deleteGoal = async (req, res) => {
             return res.status(403).json({ message: "No autorizado" });
         }
 
+        // Eliminar archivos de Cloudinary si existen
+        if (goal.media) {
+            if (goal.media.image) {
+                await deleteFromCloudinary(goal.media.image);
+            }
+            if (goal.media.video) {
+                await deleteFromCloudinary(goal.media.video);
+            }
+        }
+
         await goal.deleteOne();
 
         res.json({ message: "Meta eliminada 💔" });
 
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: error.message });
     }
 };

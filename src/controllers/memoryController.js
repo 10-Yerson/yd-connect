@@ -1,5 +1,6 @@
 const Memory = require('../models/memory');
 const uploadToCloudinary = require('../utils/uploadToCloudinary');
+const { deleteFromCloudinary } = require('../utils/cloudinaryHelper');
 
 
 // 👑 CREAR (SOLO ADMIN - tú)
@@ -90,33 +91,42 @@ exports.updateMemory = async (req, res) => {
         // Obtener flags de eliminación
         const { removeImage, removeVideo, removeAudio } = req.body;
 
-        // ========== MANEJAR IMAGEN ==========
         if (req.files?.image) {
-            // Subir nueva imagen
+            if (memory.image) {
+                await deleteFromCloudinary(memory.image);
+            }
             const imageUrl = await uploadToCloudinary(req.files.image[0], 'memories', 'image');
             memory.image = imageUrl;
         } else if (removeImage === 'true') {
-            // Eliminar imagen existente
+            if (memory.image) {
+                await deleteFromCloudinary(memory.image);
+            }
             memory.image = null;
         }
 
-        // ========== MANEJAR VIDEO ==========
         if (req.files?.video) {
-            // Subir nuevo video
+            if (memory.video) {
+                await deleteFromCloudinary(memory.video);
+            }
             const videoUrl = await uploadToCloudinary(req.files.video[0], 'memories', 'video');
             memory.video = videoUrl;
         } else if (removeVideo === 'true') {
-            // Eliminar video existente
+            if (memory.video) {
+                await deleteFromCloudinary(memory.video);
+            }
             memory.video = null;
         }
 
-        // ========== MANEJAR AUDIO ==========
         if (req.files?.music) {
-            // Subir nuevo audio
-            const audioUrl = await uploadToCloudinary(req.files.music[0], 'memories', 'auto');
+            if (memory.music) {
+                await deleteFromCloudinary(memory.music);
+            }
+            const audioUrl = await uploadToCloudinary(req.files.music[0], 'memories', 'video');
             memory.music = audioUrl;
         } else if (removeAudio === 'true') {
-            // Eliminar audio existente
+            if (memory.music) {
+                await deleteFromCloudinary(memory.music);
+            }
             memory.music = null;
         }
 
@@ -147,11 +157,23 @@ exports.deleteMemory = async (req, res) => {
             return res.status(403).json({ message: "Solo tú puedes eliminar recuerdos 💔" });
         }
 
+        // Eliminar todos los archivos de Cloudinary antes de borrar el recuerdo
+        if (memory.image) {
+            await deleteFromCloudinary(memory.image);
+        }
+        if (memory.video) {
+            await deleteFromCloudinary(memory.video);
+        }
+        if (memory.music) {
+            await deleteFromCloudinary(memory.music);
+        }
+
         await memory.deleteOne();
 
         res.json({ message: "Recuerdo eliminado 💔" });
 
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: error.message });
     }
 };
