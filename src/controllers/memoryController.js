@@ -11,15 +11,18 @@ exports.createMemory = async (req, res) => {
         let image, video, music;
 
         if (req.files?.image) {
-            image = await uploadToCloudinary(req.files.image[0], 'memories', 'image');
+            // Imagen a carpeta memories/images
+            image = await uploadToCloudinary(req.files.image[0], 'memories/images', 'image');
         }
 
         if (req.files?.video) {
-            video = await uploadToCloudinary(req.files.video[0], 'memories', 'video');
+            // Video a carpeta memories/videos
+            video = await uploadToCloudinary(req.files.video[0], 'memories/videos', 'video');
         }
 
         if (req.files?.music) {
-            music = await uploadToCloudinary(req.files.music[0], 'memories', 'video');
+            // Audio a carpeta memories/audio (subido como video)
+            music = await uploadToCloudinary(req.files.music[0], 'memories/audio', 'video');
         }
 
         const memory = await Memory.create({
@@ -37,7 +40,6 @@ exports.createMemory = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
-
 
 // 👀 VER TODAS (LOS 2 PUEDEN VER)
 exports.getMemories = async (req, res) => {
@@ -95,7 +97,8 @@ exports.updateMemory = async (req, res) => {
             if (memory.image) {
                 await deleteFromCloudinary(memory.image);
             }
-            const imageUrl = await uploadToCloudinary(req.files.image[0], 'memories', 'image');
+            // Subir nueva imagen a carpeta memories/images
+            const imageUrl = await uploadToCloudinary(req.files.image[0], 'memories/images', 'image');
             memory.image = imageUrl;
         } else if (removeImage === 'true') {
             if (memory.image) {
@@ -108,7 +111,8 @@ exports.updateMemory = async (req, res) => {
             if (memory.video) {
                 await deleteFromCloudinary(memory.video);
             }
-            const videoUrl = await uploadToCloudinary(req.files.video[0], 'memories', 'video');
+            // Subir nuevo video a carpeta memories/videos
+            const videoUrl = await uploadToCloudinary(req.files.video[0], 'memories/videos', 'video');
             memory.video = videoUrl;
         } else if (removeVideo === 'true') {
             if (memory.video) {
@@ -121,7 +125,8 @@ exports.updateMemory = async (req, res) => {
             if (memory.music) {
                 await deleteFromCloudinary(memory.music);
             }
-            const audioUrl = await uploadToCloudinary(req.files.music[0], 'memories', 'video');
+            // Subir nuevo audio a carpeta memories/audio (como video)
+            const audioUrl = await uploadToCloudinary(req.files.music[0], 'memories/audio', 'video');
             memory.music = audioUrl;
         } else if (removeAudio === 'true') {
             if (memory.music) {

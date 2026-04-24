@@ -11,11 +11,13 @@ exports.createGoal = async (req, res) => {
         const media = {};
 
         if (req.files?.image) {
-            media.image = await uploadToCloudinary(req.files.image[0], 'goals', 'image');
+            // Subir imagen a carpeta goals/images
+            media.image = await uploadToCloudinary(req.files.image[0], 'goals/images', 'image');
         }
 
         if (req.files?.video) {
-            media.video = await uploadToCloudinary(req.files.video[0], 'goals', 'video');
+            // Subir video a carpeta goals/videos
+            media.video = await uploadToCloudinary(req.files.video[0], 'goals/videos', 'video');
         }
 
         const goal = await Goal.create({
@@ -99,8 +101,8 @@ exports.updateGoal = async (req, res) => {
             if (goal.media.image) {
                 await deleteFromCloudinary(goal.media.image);
             }
-            // Subir nueva imagen
-            const imageUrl = await uploadToCloudinary(req.files.image[0], 'goals', 'image');
+            // Subir nueva imagen a carpeta goals/images
+            const imageUrl = await uploadToCloudinary(req.files.image[0], 'goals/images', 'image');
             goal.media.image = imageUrl;
         } else if (removeImage) {
             // Eliminar imagen existente de Cloudinary
@@ -116,8 +118,8 @@ exports.updateGoal = async (req, res) => {
             if (goal.media.video) {
                 await deleteFromCloudinary(goal.media.video);
             }
-            // Subir nuevo video
-            const videoUrl = await uploadToCloudinary(req.files.video[0], 'goals', 'video');
+            // Subir nuevo video a carpeta goals/videos
+            const videoUrl = await uploadToCloudinary(req.files.video[0], 'goals/videos', 'video');
             goal.media.video = videoUrl;
         } else if (removeVideo) {
             // Eliminar video existente de Cloudinary
