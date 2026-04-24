@@ -1,6 +1,7 @@
 const Letter = require('../models/Letter');
 const uploadToCloudinary = require('../utils/uploadToCloudinary');
 const { startDate } = require('../config/appConfig');
+const { deleteFromCloudinary } = require('../utils/cloudinaryHelper');
 
 // 🟢 Crear carta (ADMIN)
 exports.createLetter = async (req, res) => {
@@ -88,6 +89,7 @@ exports.updateLetter = async (req, res) => {
 
         // Actualizar mes si cambió
         if (month && month !== letter.month) {
+            //const startDate = new Date(); // 👈 Define startDate
             const openedAt = new Date(
                 startDate.getFullYear(),
                 startDate.getMonth() + (month - 1),
@@ -103,25 +105,42 @@ exports.updateLetter = async (req, res) => {
 
         // Manejar imagen
         if (req.files?.image) {
+            if (letter.imageUrl) {
+                await deleteFromCloudinary(letter.imageUrl); 
+            }
             const imageUrl = await uploadToCloudinary(req.files.image[0], 'letters/images', 'image');
             letter.imageUrl = imageUrl;
         } else if (removeImage === 'true') {
+            if (letter.imageUrl) {
+                await deleteFromCloudinary(letter.imageUrl)
+            }
             letter.imageUrl = null;
         }
 
-        // Manejar video
         if (req.files?.video) {
+            if (letter.videoUrl) {
+                await deleteFromCloudinary(letter.videoUrl); 
+            }
             const videoUrl = await uploadToCloudinary(req.files.video[0], 'letters/videos', 'video');
             letter.videoUrl = videoUrl;
         } else if (removeVideo === 'true') {
+            if (letter.videoUrl) {
+                await deleteFromCloudinary(letter.videoUrl);
+            }
             letter.videoUrl = null;
         }
 
         // Manejar audio
         if (req.files?.audio) {
+            if (letter.audioUrl) {
+                await deleteFromCloudinary(letter.audioUrl); 
+            }
             const audioUrl = await uploadToCloudinary(req.files.audio[0], 'letters/audio', 'auto');
             letter.audioUrl = audioUrl;
         } else if (removeAudio === 'true') {
+            if (letter.audioUrl) {
+                await deleteFromCloudinary(letter.audioUrl);
+            }
             letter.audioUrl = null;
         }
 
@@ -513,13 +532,22 @@ exports.getAllLetters = async (req, res) => {
     }
 };
 
-// ADMIN - Eliminar carta
 exports.deleteLetter = async (req, res) => {
     try {
         const letter = await Letter.findById(req.params.id);
 
         if (!letter) {
             return res.status(404).json({ msg: 'Carta no encontrada' });
+        }
+
+        if (letter.imageUrl) {
+            await deleteFromCloudinary(letter.imageUrl);
+        }
+        if (letter.videoUrl) {
+            await deleteFromCloudinary(letter.videoUrl);
+        }
+        if (letter.audioUrl) {
+            await deleteFromCloudinary(letter.audioUrl);
         }
 
         await letter.deleteOne();
