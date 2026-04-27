@@ -2,6 +2,7 @@ const User = require('../models/User');
 const cloudinary = require('../config/cloudinary');
 const bcrypt = require('bcryptjs');
 const uploadToCloudinary = require('../utils/uploadToCloudinary');
+const { deleteFromCloudinary } = require('../utils/cloudinaryHelper');
 
 // ========== FUNCIONES PARA ADMIN ==========
 
@@ -121,7 +122,17 @@ exports.deleteUserByAdmin = async (req, res) => {
             return res.status(404).json({ msg: 'Usuario no encontrado' });
         }
 
+        // Guardar la URL de la foto antes de eliminar
+        const profilePicture = user.profilePicture;
+
+        // Eliminar el usuario de la base de datos
         await user.deleteOne();
+
+        // Eliminar la foto de Cloudinary (si no es la default)
+        const defaultUrl = 'https://res.cloudinary.com/dbgj8dqup/image/upload/v1743182322/uploads/ixv6tw8jfbhykflcmyex.png';
+        if (profilePicture && profilePicture !== defaultUrl) {
+            await deleteFromCloudinary(profilePicture);
+        }
 
         res.json({ 
             success: true,
@@ -148,14 +159,25 @@ exports.uploadUserProfilePictureByAdmin = async (req, res) => {
             return res.status(404).json({ msg: 'Usuario no encontrado' });
         }
 
+        // Guardar la URL anterior para eliminarla después
+        const oldProfilePicture = user.profilePicture;
+
+        // Subir la nueva imagen a Cloudinary
         const imageUrl = await uploadToCloudinary(
             req.file,
             'nuestra-historia/users',
             'image'
         );
 
+        // Actualizar la foto de perfil
         user.profilePicture = imageUrl;
         await user.save();
+
+        // Eliminar la foto anterior de Cloudinary (si no es la default)
+        const defaultUrl = 'https://res.cloudinary.com/dbgj8dqup/image/upload/v1743182322/uploads/ixv6tw8jfbhykflcmyex.png';
+        if (oldProfilePicture && oldProfilePicture !== defaultUrl) {
+            await deleteFromCloudinary(oldProfilePicture);
+        }
 
         res.json({
             success: true,
@@ -185,9 +207,17 @@ exports.deleteUserProfilePictureByAdmin = async (req, res) => {
             return res.status(404).json({ msg: 'Usuario no encontrado' });
         }
 
+        // Guardar la URL actual para eliminarla de Cloudinary
+        const oldProfilePicture = user.profilePicture;
+
         const defaultUrl = 'https://res.cloudinary.com/dbgj8dqup/image/upload/v1743182322/uploads/ixv6tw8jfbhykflcmyex.png';
         user.profilePicture = defaultUrl;
         await user.save();
+
+        // Eliminar la foto anterior de Cloudinary (si no es la default)
+        if (oldProfilePicture && oldProfilePicture !== defaultUrl) {
+            await deleteFromCloudinary(oldProfilePicture);
+        }
 
         res.json({ 
             success: true,
@@ -295,14 +325,25 @@ exports.uploadMyProfilePicture = async (req, res) => {
             return res.status(404).json({ msg: 'Usuario no encontrado' });
         }
 
+        // Guardar la URL anterior para eliminarla después
+        const oldProfilePicture = user.profilePicture;
+
+        // Subir la nueva imagen a Cloudinary
         const imageUrl = await uploadToCloudinary(
             req.file,
             'nuestra-historia/users',
             'image'
         );
 
+        // Actualizar la foto de perfil
         user.profilePicture = imageUrl;
         await user.save();
+
+        // Eliminar la foto anterior de Cloudinary (si no es la default)
+        const defaultUrl = 'https://res.cloudinary.com/dbgj8dqup/image/upload/v1743182322/uploads/ixv6tw8jfbhykflcmyex.png';
+        if (oldProfilePicture && oldProfilePicture !== defaultUrl) {
+            await deleteFromCloudinary(oldProfilePicture);
+        }
 
         res.json({
             success: true,
@@ -325,9 +366,17 @@ exports.deleteMyProfilePicture = async (req, res) => {
             return res.status(404).json({ msg: 'Usuario no encontrado' });
         }
 
+        // Guardar la URL actual para eliminarla de Cloudinary
+        const oldProfilePicture = user.profilePicture;
+
         const defaultUrl = 'https://res.cloudinary.com/dbgj8dqup/image/upload/v1743182322/uploads/ixv6tw8jfbhykflcmyex.png';
         user.profilePicture = defaultUrl;
         await user.save();
+
+        // Eliminar la foto anterior de Cloudinary (si no es la default)
+        if (oldProfilePicture && oldProfilePicture !== defaultUrl) {
+            await deleteFromCloudinary(oldProfilePicture);
+        }
 
         res.json({ 
             success: true,
@@ -350,11 +399,17 @@ exports.deleteMyAccount = async (req, res) => {
             return res.status(404).json({ msg: 'Usuario no encontrado' });
         }
 
-        // Opcional: soft delete en lugar de eliminar realmente
-        // user.isActive = false;
-        // await user.save();
-        
+        // Guardar la URL de la foto antes de eliminar
+        const profilePicture = user.profilePicture;
+
+        // Eliminar el usuario de la base de datos
         await user.deleteOne();
+
+        // Eliminar la foto de Cloudinary (si no es la default)
+        const defaultUrl = 'https://res.cloudinary.com/dbgj8dqup/image/upload/v1743182322/uploads/ixv6tw8jfbhykflcmyex.png';
+        if (profilePicture && profilePicture !== defaultUrl) {
+            await deleteFromCloudinary(profilePicture);
+        }
 
         res.json({
             success: true,

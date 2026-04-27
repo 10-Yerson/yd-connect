@@ -1,6 +1,7 @@
 const Admin = require('../models/Admin');
 const cloudinary = require('../config/cloudinary');
 const uploadToCloudinary = require('../utils/uploadToCloudinary');
+const { deleteFromCloudinary } = require('../utils/cloudinaryHelper');
 
 // 👤 Obtener mi propio perfil
 exports.getMyProfile = async (req, res) => {
@@ -83,27 +84,40 @@ exports.uploadMyProfilePicture = async (req, res) => {
             return res.status(400).json({ msg: 'No file uploaded' });
         }
         
+        const admin = await Admin.findById(req.user.id);
+        
+        if (!admin) {
+            return res.status(404).json({ msg: 'Admin not found' });
+        }
+        
+        // Guardar la URL anterior para eliminarla después
+        const oldProfileUrl = admin.profileUrl;
+        
+        // Subir la nueva imagen a Cloudinary
         const imageUrl = await uploadToCloudinary(
             req.file,
             'nuestra-historia/profile',
             'image'
         );
         
-        const admin = await Admin.findByIdAndUpdate(
-            req.user.id,
-            { profileUrl: imageUrl },
-            { new: true }
-        ).select('-password');
+        // Actualizar la foto de perfil
+        admin.profileUrl = imageUrl;
+        await admin.save();
         
-        if (!admin) {
-            return res.status(404).json({ msg: 'Admin not found' });
+        // Eliminar la foto anterior de Cloudinary (si no es la default)
+        const defaultUrl = 'https://res.cloudinary.com/dbgj8dqup/image/upload/v1743182322/uploads/ixv6tw8jfbhykflcmyex.png';
+        if (oldProfileUrl && oldProfileUrl !== defaultUrl) {
+            await deleteFromCloudinary(oldProfileUrl);
         }
+        
+        const adminResponse = admin.toObject();
+        delete adminResponse.password;
         
         res.json({
             success: true,
             msg: 'Profile picture updated successfully',
             profileUrl: imageUrl,
-            admin
+            admin: adminResponse
         });
     } catch (error) {
         console.error(error);
@@ -120,7 +134,17 @@ exports.deleteMyAccount = async (req, res) => {
             return res.status(404).json({ msg: 'Admin not found' });
         }
         
+        // Guardar la URL de la foto antes de eliminar
+        const profileUrl = admin.profileUrl;
+        
+        // Eliminar el admin de la base de datos
         await admin.deleteOne();
+        
+        // Eliminar la foto de Cloudinary (si no es la default)
+        const defaultUrl = 'https://res.cloudinary.com/dbgj8dqup/image/upload/v1743182322/uploads/ixv6tw8jfbhykflcmyex.png';
+        if (profileUrl && profileUrl !== defaultUrl) {
+            await deleteFromCloudinary(profileUrl);
+        }
         
         res.json({
             success: true,
@@ -194,7 +218,17 @@ exports.updateAdminById = async (req, res) => {
         admin.genero = genero || admin.genero;
         admin.role = role || admin.role;
         
+        // Si se proporciona una nueva contraseña, encriptarla
+        if (password) {
+            const salt = await bcrypt.genSalt(10);
+            admin.password = await bcrypt.hash(password, salt);
+        }
+        
         await admin.save();
+        
+        // Devolver admin sin contraseña
+        const adminResponse = admin.toObject();
+        delete adminResponse.password;
         
         res.json({
             success: true,
@@ -230,7 +264,10 @@ exports.uploadAnyAdminProfilePicture = async (req, res) => {
             return res.status(404).json({ msg: 'Admin not found' });
         }
         
-        // Subir la imagen a Cloudinary
+        // Guardar la URL anterior para eliminarla después
+        const oldProfileUrl = admin.profileUrl;
+        
+        // Subir la nueva imagen a Cloudinary
         const imageUrl = await uploadToCloudinary(
             req.file,
             'nuestra-historia/profile',
@@ -238,17 +275,23 @@ exports.uploadAnyAdminProfilePicture = async (req, res) => {
         );
         
         // Actualizar la foto de perfil del admin específico
-        const updatedAdmin = await Admin.findByIdAndUpdate(
-            adminId,
-            { profileUrl: imageUrl },
-            { new: true }
-        ).select('-password');
+        admin.profileUrl = imageUrl;
+        await admin.save();
+        
+        // Eliminar la foto anterior de Cloudinary (si no es la default)
+        const defaultUrl = 'https://res.cloudinary.com/dbgj8dqup/image/upload/v1743182322/uploads/ixv6tw8jfbhykflcmyex.png';
+        if (oldProfileUrl && oldProfileUrl !== defaultUrl) {
+            await deleteFromCloudinary(oldProfileUrl);
+        }
+        
+        const adminResponse = admin.toObject();
+        delete adminResponse.password;
         
         res.json({
             success: true,
-            msg: `Profile picture updated for admin: ${updatedAdmin.name} ${updatedAdmin.apellido}`,
+            msg: `Profile picture updated for admin: ${admin.name} ${admin.apellido}`,
             profileUrl: imageUrl,
-            admin: updatedAdmin
+            admin: adminResponse
         });
     } catch (error) {
         console.error(error);
@@ -256,7 +299,7 @@ exports.uploadAnyAdminProfilePicture = async (req, res) => {
     }
 };
 
-// 🗑️ Eliminar cualquier admin
+// 🗑️ Eliminar cualquier admin (solo superadmin)
 exports.deleteAdminById = async (req, res) => {
     try {
         const admin = await Admin.findById(req.params.id);
@@ -270,7 +313,17 @@ exports.deleteAdminById = async (req, res) => {
             return res.status(400).json({ msg: 'You cannot delete your own account through this endpoint' });
         }
         
+        // Guardar la URL de la foto antes de eliminar
+        const profileUrl = admin.profileUrl;
+        
+        // Eliminar el admin de la base de datos
         await admin.deleteOne();
+        
+        // Eliminar la foto de Cloudinary (si no es la default)
+        const defaultUrl = 'https://res.cloudinary.com/dbgj8dqup/image/upload/v1743182322/uploads/ixv6tw8jfbhykflcmyex.png';
+        if (profileUrl && profileUrl !== defaultUrl) {
+            await deleteFromCloudinary(profileUrl);
+        }
         
         res.json({
             success: true,
