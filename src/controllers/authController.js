@@ -200,3 +200,20 @@ exports.refreshToken = async (req, res) => {
         res.status(401).json({ msg: 'Invalid token' });
     }
 };
+
+exports.verificarEmergencia = async (req, res) => {
+    const { password } = req.body;
+    const EMERGENCIA_PASSWORD = process.env.EMERGENCIA_PASSWORD;
+    
+    if (password === EMERGENCIA_PASSWORD) {
+        res.json({
+            success: true,
+            msg: 'Contraseña correcta'
+        });
+    } else {
+        res.status(401).json({
+            success: false,
+            msg: 'Contraseña incorrecta'
+        });
+    }
+};

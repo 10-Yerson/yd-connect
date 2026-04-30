@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { registerUser, registerAdmin, login, logout, checkAuth, getUserInfo, refreshToken } = require('../controllers/authController');
+const { registerUser, registerAdmin, login, logout, checkAuth, getUserInfo, refreshToken, verificarEmergencia } = require('../controllers/authController');
 
 const { auth } = require('../middleware/authMiddleware');
 
@@ -19,5 +19,7 @@ router.post('/register/admin', registerAdmin);
 // 🔑 Login / Logout
 router.post('/login', login);
 router.post('/logout', logout);
+
+router.post('/emergencia', verificarEmergencia);
 
 module.exports = router;
